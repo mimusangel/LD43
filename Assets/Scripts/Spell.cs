@@ -63,7 +63,7 @@ public class Spell : MonoBehaviour {
 		}
 		if (elemental == Elemental.Fire)
 		{
-			playerMove.Effect(elemental, dmg * 0.75f, 2.5f);
+			playerMove.Effect(elemental, dmg * 0.075f, 2.5f);
 			return (dmg * 0.75f);
 		}
 		if (elemental == Elemental.Freeze)
@@ -73,7 +73,7 @@ public class Spell : MonoBehaviour {
 		}
 		if (elemental == Elemental.Mud)
 		{
-			playerMove.Effect(elemental, dmg * 0.5f, 5f);
+			playerMove.Effect(elemental, dmg * 0.05f, 5f);
 			return (dmg * 0.5f);
 		}
 		if (elemental == Elemental.Ice)

@@ -66,9 +66,13 @@ public class IA : MonoBehaviour {
 		Debug.Log (distToPlayer);
 		Power = (distToPlayer / 4.5f);
 		Power += Random.Range(-2.5f, 2.5f);
-		Debug.Log (Power);
+		if (Power < 4.0f)
+			Power = 4.0f;
 		Life = Power;
 		SpellRate += Random.Range(-0.5f, 0.5f);
+		do {
+			Elemental = Utility.RandomEnumValue<Elemental>();
+        } while(Elemental == Elemental.None);
 		
 		EffectFire.SetActive(false);
 		EffectFreezeWater.SetActive(false);
@@ -95,7 +99,10 @@ public class IA : MonoBehaviour {
 		MovingTimer = Mathf.Max(MovingTimer - Time.deltaTime, 0.0f);
 		if (focusObject)
 		{
-			agent.ResetPath();
+			Debug.Log (agent.speed);
+			Debug.Log (agent.hasPath);
+			// Vector3 pos = focusObject.transform.position;
+			// pos.y = Terrain.activeTerrain.SampleHeight(pos);
 			agent.SetDestination(focusObject.transform.position);
 			transform.localRotation = Quaternion.LookRotation((focusObject.transform.position - transform.position).normalized, Vector3.up);
 		}
@@ -194,7 +201,10 @@ public class IA : MonoBehaviour {
 	{
 		dmg -= GetDefense();
 		if (!focusObject)
+		{
 			focusObject = src;
+			agent.ResetPath();
+		}
 		GameObject prefab = Resources.Load<GameObject>("Hit");
 		if (prefab)
 		{
@@ -246,21 +256,21 @@ public class IA : MonoBehaviour {
 		if (Vector3.Dot(transform.forward, dir) > 0.52f)
 		{
 			// RaycastHit hit;
-			float dist = (position - transform.position).magnitude;
+			// float dist = (position - transform.position).magnitude;
 			
-			// if (Physics.Raycast(transform.position, dir, out hit, dist))
+			// // if (Physics.Raycast(transform.position, dir, out hit, dist))
+			// // {
+			// // 	return (hit.distance >= dist - 0.5f);
+			// // }
+			// RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 1.0f + dir * 0.3f, dir, dist);
+			// // Debug.Log(hits.Length);
+			// foreach (RaycastHit hit in hits)
 			// {
-			// 	return (hit.distance >= dist - 0.5f);
+			// 	// Debug.Log(hit.distance + " // " + (dist - 0.5f));
+			// 	// Debug.Log(hit.collider.gameObject.name);
+			// 	if ((hit.distance < dist - 0.5f))
+			// 		return false;
 			// }
-			RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 1.0f + dir * 0.3f, dir, dist);
-			// Debug.Log(hits.Length);
-			foreach (RaycastHit hit in hits)
-			{
-				// Debug.Log(hit.distance + " // " + (dist - 0.5f));
-				// Debug.Log(hit.collider.gameObject.name);
-				if ((hit.distance < dist - 0.5f))
-					return false;
-			}
 			return true;
 		}
 		return false; // 0.35 = 58.5
@@ -280,7 +290,10 @@ public class IA : MonoBehaviour {
 		{
 			// testTemp = other.gameObject.transform.position;
 			if (InView(other.gameObject.transform.position))
+			{
 				focusObject = other.gameObject;
+				agent.ResetPath();
+			}
 		}
 	}
 
@@ -313,6 +326,7 @@ public class IA : MonoBehaviour {
 		if (other.gameObject == focusObject)
 		{
 			focusObject = null;
+			agent.ResetPath();
 		}
 	}
 
