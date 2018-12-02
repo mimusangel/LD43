@@ -1,0 +1,104 @@
+Sacrifices must be made
+
+Line: Blood Magic, Sacrifice life for magie
+
+TODO:
+Terrain
+[x] Terrain Base(ground)
+[ ] City 1
+[ ] City 2
+[ ] City 3
+[ ] City ...
+
+Animation:
+- Player
+	-Idle
+		[x] Simple
+		[x] Attack
+		[x] Defense
+	- Moving
+		[x] Simple
+		[x] Attack
+		[x] Defense
+- Enemy:
+	equale to Player
+
+Script:
+[x] Stat Entity (Player or Enemy)
+[x] Move
+[x] IA
+	[x] Basic IA
+	[x] Nav Agent IA
+	[x] Focus Player
+	[x] Attack Player
+	[ ] View in Radius (Dot)
+	[ ] Item Drop
+		[ ] Life
+		[ ] Exp +
+		[ ] Stamina Regen
+
+Player Stats:
+[x] Life (Life Max = Power)
+[x] Power (DPS and Defense)
+	[x] DPS per attack = Random(Power 0.25) + (Power * 0.5)
+	[x] Defense = Power * 0.5
+[X] Exp
+[X] Level
+[x] Kill Number
+[x] Spell Rate
+[x] Magie
+	[x] Earth
+	[x] Wind
+	[x] Water
+	[x] Select Multiple (1 or 2)
+	[x] Combine
+		[x] Earth + Wind = Lighning
+		[x] Earth + Water = Wood
+		[x] Wind + Earth = Fire
+		[x] Wind + Water = Freeze
+		[x] Water + Earth = Mud?
+		[x] Water + Wind = Ice
+	[x] Collid
+		[x] Destroy Magie
+		[x] Hit Player
+		[x] Hit Entity
+	[x] Defense
+		[ ] Particle Effect
+[X] Stamina (For Defense "Timer")
+	[X] Max Stamina = Powres * 0.2f
+[x] Bonus: Powers
+[x] Bonus : Powers Spell Rate
+[x] Bonus: Life Recoverie Per Level UP
+[x] Bonus: Stamina Recoverie
+
+Effect:
+	[x] Earth = dmg Sup/ dmg x1.15
+	[x] Wind = Knockback / dmg x1
+	[x] Water = small Slow (2s)/ dmg x1
+	[x] Lighning = Rotate Dir / dmg x1
+	[x] Wood = Life Regen On Kill (1) / dmg x0.5
+	[x] Fire = ignite(2.5s) / dmg x0.75 (Must DPS)
+	[x] Freeze slow(5s) / dmg x0.75
+	[x] Mud = poison(5s) / dmg x0.5
+	[x] Ice = lock(2s) / dmg x0.5
+[x] Effect Particle
+
+Interface:
+[ ] Win/Lost Menu
+	[ ] Input Player name
+	[ ] Restart Game
+[x] In Game
+	[x] Score Board (5 Last score)
+	[x] Pause Menu
+		[x] Bonus Shop
+		[x] View Player Stat
+		[x] View Game Stat
+		[x] Exit
+	[x] Life
+	[x] Power
+	[x] Spell Select
+	[x] Stamina
+	[x] Kill Count
+	[ ] Living Count
+	[x] Bar exp
+	[ ] Effect Status
