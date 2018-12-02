@@ -35,7 +35,7 @@ public class Spell : MonoBehaviour {
 		if (other.gameObject.tag == "Entity")
 		{ // Hit Entity
 			IA ia = other.gameObject.GetComponent<IA>();
-			if (ia.TakeDamage(EntityEffect(ia, elemental, powerDamage), elemental))
+			if (ia.TakeDamage(EntityEffect(ia, elemental, powerDamage), elemental, source))
 			{
 				PlayerMove pm = source.GetComponent<PlayerMove>();
 				if (pm)
@@ -109,33 +109,33 @@ public class Spell : MonoBehaviour {
 		}
 		if (elemental == Elemental.Fire)
 		{
-			ia.Effect(elemental, dmg * 0.75f, 2.5f);
+			ia.Effect(elemental, dmg * 0.075f, 2.5f, source);
 			return (dmg * 0.75f);
 		}
 		if (elemental == Elemental.Freeze)
 		{
-			ia.Effect(elemental, 0.0f, 5f);
+			ia.Effect(elemental, 0.0f, 5f, source);
 			return dmg * 0.75f;
 		}
 		if (elemental == Elemental.Mud)
 		{
-			ia.Effect(elemental, dmg * 0.5f, 5f);
+			ia.Effect(elemental, dmg * 0.05f, 5f, source);
 			return (dmg * 0.5f);
 		}
 		if (elemental == Elemental.Ice)
 		{
-			ia.Effect(elemental, 0.0f, 2f);
+			ia.Effect(elemental, 0.0f, 2f, source);
 			return dmg * 0.5f;
 		}
 		if (elemental == Elemental.Wind)
 		{
-			ia.GetComponent<Rigidbody>().AddForce((GetComponent<Rigidbody>().velocity + Vector3.up).normalized * 500.0f);
+			// ia.GetComponent<Rigidbody>().AddForce((GetComponent<Rigidbody>().velocity + Vector3.up).normalized * 500.0f);
 			 // Knockback
 			return dmg;
 		}
 		if (elemental == Elemental.Water)
 		{
-			ia.Effect(elemental, 0.0f, 2f);
+			ia.Effect(elemental, 0.0f, 2f, source);
 			return dmg;
 		}
 		if (elemental == Elemental.Earth)

@@ -41,6 +41,7 @@ public class IA : MonoBehaviour {
 	Elemental	_effectElemental = Elemental.None;
 	float		_effectValue;
 	float		_effectTimer;
+	GameObject	_effectSource;
 	public GameObject EffectFire;
 	public GameObject EffectFreezeWater;
 	public GameObject EffectMud;
@@ -56,7 +57,16 @@ public class IA : MonoBehaviour {
 		// agent.updateRotation = false;
 		animator = GetComponent<Animator>();
 		// rgb = GetComponent<Rigidbody>();
+
+		Vector3 pos = transform.position;
+		pos.y = Terrain.activeTerrain.SampleHeight(pos);
+		transform.position = pos;
+
+		float distToPlayer = Vector3.Distance(transform.position, PlayerMove.Instance.transform.position);
+		Debug.Log (distToPlayer);
+		Power = (distToPlayer / 4.5f);
 		Power += Random.Range(-2.5f, 2.5f);
+		Debug.Log (Power);
 		Life = Power;
 		SpellRate += Random.Range(-0.5f, 0.5f);
 		
@@ -65,10 +75,6 @@ public class IA : MonoBehaviour {
 		EffectMud.SetActive(false);
 		EffectIce.SetActive(false);
 		IAList.Add(this);
-
-		Vector3 pos = transform.position;
-		pos.y = Terrain.activeTerrain.SampleHeight(pos);
-		transform.position = pos;
 	}
 	
 	// Update is called once per frame
@@ -89,14 +95,17 @@ public class IA : MonoBehaviour {
 		MovingTimer = Mathf.Max(MovingTimer - Time.deltaTime, 0.0f);
 		if (focusObject)
 		{
+			agent.ResetPath();
 			agent.SetDestination(focusObject.transform.position);
+			transform.localRotation = Quaternion.LookRotation((focusObject.transform.position - transform.position).normalized, Vector3.up);
 		}
-		else if (MovingTimer <= 0.0f)
+		else if (!focusObject && MovingTimer <= 0.0f)
 		{
 			Vector3 rndPos = transform.position + new Vector3(Random.Range(-50.0f, 50.0f), 0.0f, Random.Range(-50.0f, 50.0f));
 			rndPos.y = Terrain.activeTerrain.SampleHeight(rndPos);
+			agent.ResetPath();
 			agent.SetDestination(rndPos);
-			MovingTimer = 10.0f;
+			MovingTimer = 15.0f;
 		}
 		// if (agent.hasPath)
 		// {
@@ -114,8 +123,7 @@ public class IA : MonoBehaviour {
 			float dist = Vector3.Distance(transform.position, focusObject.transform.position);
 			if (dist < 10.0f)
 			{
-				if (focusObject)
-					transform.localRotation = Quaternion.LookRotation((focusObject.transform.position - transform.position).normalized, Vector3.up);
+				// if (focusObject)
 				animator.SetInteger("Action", 1);
 				if (!MagicWandCall)
 				{
@@ -157,6 +165,12 @@ public class IA : MonoBehaviour {
 				animator.SetInteger("Action", 0);
 				MagicWandCall = null;
 				_spellLoad = 0.0f;
+				GameObject prefab = Resources.Load<GameObject>("FireSpell");
+				if (prefab)
+				{
+					GameObject sound = Instantiate(prefab, rg.transform.position, Quaternion.identity);
+					Destroy(sound, 5.0f);
+				}
 			}
 			else
 			{
@@ -176,9 +190,17 @@ public class IA : MonoBehaviour {
 	}
 
 	
-	public bool TakeDamage(float dmg, Elemental dmgType)
+	public bool TakeDamage(float dmg, Elemental dmgType, GameObject src)
 	{
 		dmg -= GetDefense();
+		if (!focusObject)
+			focusObject = src;
+		GameObject prefab = Resources.Load<GameObject>("Hit");
+		if (prefab)
+		{
+			GameObject sound = Instantiate(prefab, transform.position + Vector3.up, Quaternion.identity);
+			Destroy(sound, 5.0f);
+		}
 		if (dmg > 0.0f)
 		{
 			Life -= dmg;
@@ -217,7 +239,10 @@ public class IA : MonoBehaviour {
 
 	bool InView(Vector3 position)
 	{
-		Vector3 dir = (position - transform.position).normalized;
+		position.y = 0.0f;
+		Vector3 thisPos = transform.position;
+		thisPos.y = 0.0f;
+		Vector3 dir = (position - thisPos).normalized;
 		if (Vector3.Dot(transform.forward, dir) > 0.52f)
 		{
 			// RaycastHit hit;
@@ -227,7 +252,7 @@ public class IA : MonoBehaviour {
 			// {
 			// 	return (hit.distance >= dist - 0.5f);
 			// }
-			RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 1.0f, dir, dist);
+			RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 1.0f + dir * 0.3f, dir, dist);
 			// Debug.Log(hits.Length);
 			foreach (RaycastHit hit in hits)
 			{
@@ -242,7 +267,11 @@ public class IA : MonoBehaviour {
 	}
 
 	// Vector3 testTemp = Vector3.zero;
-	
+
+	void OnTriggerEnter(Collider other)
+	{
+		OnTriggerStay(other);
+	}
 	void OnTriggerStay(Collider other)
 	{
 		if (focusObject)
@@ -287,14 +316,15 @@ public class IA : MonoBehaviour {
 		}
 	}
 
-	public void Effect(Elemental _effEle, float _effVal, float _effTimer)
+	public void Effect(Elemental _effEle, float _effVal, float _effTimer, GameObject src)
 	{
 		if (_effectElemental != Elemental.None)
 			return ;
 		_effectElemental = _effEle;
 		_effectValue = _effVal;
 		_effectTimer = _effTimer;
-		
+		_effectSource = src;
+
 		EffectFire.SetActive(_effectElemental == Elemental.Fire);
 		EffectFreezeWater.SetActive(_effectElemental == Elemental.Freeze || _effectElemental == Elemental.Water);
 		EffectMud.SetActive(_effectElemental == Elemental.Mud);
@@ -315,6 +345,16 @@ public class IA : MonoBehaviour {
 				EffectFreezeWater.SetActive(false);
 				EffectMud.SetActive(false);
 				EffectIce.SetActive(false);
+			}
+			if (Life <= 0)
+			{
+				PlayerMove pm = _effectSource.GetComponent<PlayerMove>();
+				if (pm)
+				{
+					pm.AddExp(1);
+					pm.AddKill();
+				}
+				Destroy(gameObject);
 			}
 		}
 	}

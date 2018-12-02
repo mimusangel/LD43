@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
 public class PlayerMove : MonoBehaviour {
-
+	public static PlayerMove Instance {get; private set;}
 	CharacterController cc;
 	Animator			animator;
 	public GameObject PlayerCamera;
@@ -50,6 +50,7 @@ public class PlayerMove : MonoBehaviour {
 	public Text StaminaText;
 	public Image ExpBar;
 	public Text ExpText;
+	public Text InfoFocusText;
 
 	[Header("UI Menu")]
 	public GameObject PanelBonus;
@@ -121,7 +122,10 @@ public class PlayerMove : MonoBehaviour {
 	}
 	List<TopPlayer> TopPlayers = new List<TopPlayer>();
 
-
+	void Awake()
+	{
+		Instance = this;
+	}
 	void Start () {
 		cc = GetComponent<CharacterController>();
 		animator = GetComponent<Animator>();
@@ -176,6 +180,7 @@ public class PlayerMove : MonoBehaviour {
 		UpdateUIEffect();
 		UpdateBonusUI();
 		Time.timeScale = 0;
+		InfoFocusText.text = "";
 	}
 
 	void FireSpell()
@@ -183,7 +188,6 @@ public class PlayerMove : MonoBehaviour {
 		if (MagicWandCall)
 		{
 			MagicWandCall.transform.SetParent(null);
-
 			Rigidbody rg = MagicWandCall.AddComponent<Rigidbody>();
 			rg.velocity = PlayerCamera.transform.forward * 20.0f;
 			rg.useGravity = false;
@@ -193,15 +197,22 @@ public class PlayerMove : MonoBehaviour {
 			_prepareSpellPower = 0.0f;
 			MagicWandCall = null;
 			_prepareSpell = Elemental.None;
+
+			GameObject prefab = Resources.Load<GameObject>("FireSpell");
+			if (prefab)
+			{
+				GameObject sound = Instantiate(prefab, rg.transform.position, Quaternion.identity);
+				Destroy(sound, 5.0f);
+			}
 		}
 	}
 	void UpdateMouse() {
-		if (Input.GetButton("Fire1") && Stamina > 0.0f)
+		if (Input.GetButton("Fire1") && Stamina > 0.0f && animator.GetInteger("Action") != 2)
 		{ // Charge Attack
 			animator.SetInteger("Action", 1);
 			_prepareSpellPower += SpellRate * Time.deltaTime;
 			_prepareSpellPower = Mathf.Min(_prepareSpellPower, Power);
-			Stamina -= 0.25f * Time.deltaTime;
+			Stamina -= 0.2f * Time.deltaTime;
 			Stamina = Mathf.Max(Stamina, 0.0f);
 			if (MagicWandCall == null)
 			{
@@ -242,9 +253,18 @@ public class PlayerMove : MonoBehaviour {
 		}
 		else if (Input.GetButton("Fire2"))
 		{ // Defense
+			if (animator.GetInteger("Action") != 2)
+			{
+				GameObject prefab = Resources.Load<GameObject>("CallSpell");
+				if (prefab)
+				{
+					GameObject sound = Instantiate(prefab, transform.position + Vector3.up, Quaternion.identity);
+					Destroy(sound, 5.0f);
+				}
+			}
 			animator.SetInteger("Action", 2);
 			EffectProtect.SetActive(true);
-			Stamina -= 1.0f * Time.deltaTime;
+			Stamina -= 0.5f * Time.deltaTime;
 			Stamina = Mathf.Max(Stamina, 0.0f);
 			StaminaRecovery = Stamina <= 0.0f;
 			if (StaminaRecovery)
@@ -358,6 +378,7 @@ public class PlayerMove : MonoBehaviour {
 		ExpText.text = "XP: " + Mathf.RoundToInt(ExpBar.fillAmount * 100.0f) + "%";
 		
 		UpdateUIEffect();
+		UpdateUIFocus();
 
 		int score = KillNumber * 100 + (Level - 1) * 50 + Mathf.RoundToInt(Life) + Exp * 2;
 		InfoText.text = KillNumber + " Sacrificed\n" + IA.IAList.Count + " Alive\n" + score + " Scores";
@@ -383,6 +404,20 @@ public class PlayerMove : MonoBehaviour {
 			EndGameText.text = "End of the game thanks you for playing.\n"
 				+ "Your Score is " + score + "\n"
 				+ "You are Top " + (top + 1);
+		}
+	}
+
+	void UpdateUIFocus()
+	{
+		InfoFocusText.text = "";
+		RaycastHit hit;
+		if (Physics.Raycast(PlayerCamera.transform.position + PlayerCamera.transform.forward * 0.3f, PlayerCamera.transform.forward, out hit))
+		{
+			IA ia = hit.collider.gameObject.GetComponent<IA>();
+			if (ia)
+			{
+				InfoFocusText.text = "Power: " + ia.Power.ToString("0.00") + " / Life: " + ia.Life.ToString("0.00");
+			}
 		}
 	}
 
@@ -448,6 +483,12 @@ public class PlayerMove : MonoBehaviour {
 			Life += Power * LifeRecoverie;
 			Life = Mathf.Min(Life, Power);
 			UpdateBonusUI();
+			GameObject prefab = Resources.Load<GameObject>("LevelUp");
+			if (prefab)
+			{
+				GameObject sound = Instantiate(prefab, transform.position + Vector3.up, Quaternion.identity);
+				Destroy(sound, 5.0f);
+			}
 		}
 	}
 	public void AddKill()
@@ -533,6 +574,12 @@ public class PlayerMove : MonoBehaviour {
 			dmg -= GetDefense();
 		else
 			dmg -= GetDefense() * 0.25f;
+		GameObject prefab = Resources.Load<GameObject>("Hit");
+		if (prefab)
+		{
+			GameObject sound = Instantiate(prefab, transform.position + Vector3.up, Quaternion.identity);
+			Destroy(sound, 5.0f);
+		}
 		if (dmg > 0.0f)
 		{
 			Life -= dmg;
