@@ -4,11 +4,12 @@ using UnityEngine;
 using UnityEngine.AI;
 
 public class IA : MonoBehaviour {
+	public static List<IA> IAList = new List<IA>();
 
 	// CharacterController cc;
-	
 	Animator			animator;
 	NavMeshAgent		agent;
+	// Rigidbody			rgb;
 
 	public float Gravity = -9.81f;
 	public float MoveSpeed = 3.0f;
@@ -33,7 +34,7 @@ public class IA : MonoBehaviour {
 	public float _spellLoad = 0.0f;
 
 
-	PlayerMove focusPlayer = null;
+	GameObject focusObject = null;
 
 	
 	[Header("Effect")]
@@ -44,12 +45,17 @@ public class IA : MonoBehaviour {
 	public GameObject EffectFreezeWater;
 	public GameObject EffectMud;
 	public GameObject EffectIce;
+
+	public float MovingTimer = 0.0f;
 	
 
 	void Start () {
 		// cc = GetComponent<CharacterController>();
 		agent = GetComponent<NavMeshAgent>();
+		// agent.updatePosition = false;
+		// agent.updateRotation = false;
 		animator = GetComponent<Animator>();
+		// rgb = GetComponent<Rigidbody>();
 		Power += Random.Range(-2.5f, 2.5f);
 		Life = Power;
 		SpellRate += Random.Range(-0.5f, 0.5f);
@@ -58,10 +64,17 @@ public class IA : MonoBehaviour {
 		EffectFreezeWater.SetActive(false);
 		EffectMud.SetActive(false);
 		EffectIce.SetActive(false);
+		IAList.Add(this);
+
+		Vector3 pos = transform.position;
+		pos.y = Terrain.activeTerrain.SampleHeight(pos);
+		transform.position = pos;
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		if (Time.timeScale <= 0)
+			return ;
 		float moveSpd = MoveSpeed;
 		if (_effectElemental == Elemental.Water)
 			moveSpd *= 0.75f;
@@ -69,30 +82,52 @@ public class IA : MonoBehaviour {
 			moveSpd *= 0.5f;
 		else if (_effectElemental == Elemental.Ice)
 			moveSpd *= 0.0f;
+		if (transform.position.y <= 54.0f)
+			moveSpd *= 0.75f;
 		agent.speed = moveSpd;
 
-		if (focusPlayer)
+		MovingTimer = Mathf.Max(MovingTimer - Time.deltaTime, 0.0f);
+		if (focusObject)
 		{
-			agent.SetDestination(focusPlayer.transform.position);
+			agent.SetDestination(focusObject.transform.position);
 		}
-		if (focusPlayer)
-			transform.localRotation = Quaternion.LookRotation((focusPlayer.transform.position - transform.position).normalized, Vector3.up);
-		animator.SetBool("Walk", (agent.velocity.sqrMagnitude > 0));
-
-		float dist = Vector3.Distance(transform.position, agent.destination);
-		if (dist < 10.0f && focusPlayer)
+		else if (MovingTimer <= 0.0f)
 		{
-			animator.SetInteger("Action", 1);
-			if (!MagicWandCall)
+			Vector3 rndPos = transform.position + new Vector3(Random.Range(-50.0f, 50.0f), 0.0f, Random.Range(-50.0f, 50.0f));
+			rndPos.y = Terrain.activeTerrain.SampleHeight(rndPos);
+			agent.SetDestination(rndPos);
+			MovingTimer = 10.0f;
+		}
+		// if (agent.hasPath)
+		// {
+		// 	Vector3 dirTarget = (transform.position + agent.velocity).normalized;
+		// 	transform.localRotation = Quaternion.LookRotation(dirTarget.normalized, Vector3.up);
+		// }
+		animator.SetBool("Walk", (agent.velocity.sqrMagnitude > 0));
+		
+		// rgb.velocity = agent.velocity + new Vector3(0, rgb.velocity.y, 0);
+		// transform.position = agent.nextPosition;
+
+		
+		if (focusObject)
+		{
+			float dist = Vector3.Distance(transform.position, focusObject.transform.position);
+			if (dist < 10.0f)
 			{
-				MagicWandCall = Instantiate(GetPrefabMagicCall(), Vector3.zero, Quaternion.identity, MagicWand.transform);
-				MagicWandCall.transform.localPosition = Vector3.zero;
-				MagicWandCall.transform.localRotation = Quaternion.identity;
-				MagicWandCall.transform.localScale = Vector3.zero;
-				MagicWandCall.GetComponent<SphereCollider>().radius = 0.5f;
-				Spell sp = MagicWandCall.GetComponent<Spell>();
-				sp.source = this.gameObject;
-				sp.elemental = Elemental;
+				if (focusObject)
+					transform.localRotation = Quaternion.LookRotation((focusObject.transform.position - transform.position).normalized, Vector3.up);
+				animator.SetInteger("Action", 1);
+				if (!MagicWandCall)
+				{
+					MagicWandCall = Instantiate(GetPrefabMagicCall(), Vector3.zero, Quaternion.identity, MagicWand.transform);
+					MagicWandCall.transform.localPosition = Vector3.zero;
+					MagicWandCall.transform.localRotation = Quaternion.identity;
+					MagicWandCall.transform.localScale = Vector3.zero;
+					MagicWandCall.GetComponent<SphereCollider>().radius = 0.5f;
+					Spell sp = MagicWandCall.GetComponent<Spell>();
+					sp.source = this.gameObject;
+					sp.elemental = Elemental;
+				}
 			}
 		}
 
@@ -110,11 +145,12 @@ public class IA : MonoBehaviour {
 				MagicWandCall.transform.SetParent(null);
 
 				Rigidbody rg = MagicWandCall.AddComponent<Rigidbody>();
-				if (focusPlayer)
-					rg.velocity = (focusPlayer.transform.position - transform.position).normalized * 20.0f;
+				if (focusObject)
+					rg.velocity = (focusObject.transform.position - transform.position).normalized * 20.0f;
 				else
 					rg.velocity = transform.forward * 20.0f;
 				rg.useGravity = false;
+				rg.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
 				Destroy(MagicWandCall, 5.0f);
 
@@ -178,17 +214,76 @@ public class IA : MonoBehaviour {
 			return EarthCall;
 		return null;
 	}
-	
-	void OnTriggerEnter(Collider other)
+
+	bool InView(Vector3 position)
 	{
-		if (other.gameObject.tag == "Player")
-			focusPlayer = other.gameObject.GetComponent<PlayerMove>();
+		Vector3 dir = (position - transform.position).normalized;
+		if (Vector3.Dot(transform.forward, dir) > 0.52f)
+		{
+			// RaycastHit hit;
+			float dist = (position - transform.position).magnitude;
+			
+			// if (Physics.Raycast(transform.position, dir, out hit, dist))
+			// {
+			// 	return (hit.distance >= dist - 0.5f);
+			// }
+			RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 1.0f, dir, dist);
+			// Debug.Log(hits.Length);
+			foreach (RaycastHit hit in hits)
+			{
+				// Debug.Log(hit.distance + " // " + (dist - 0.5f));
+				// Debug.Log(hit.collider.gameObject.name);
+				if ((hit.distance < dist - 0.5f))
+					return false;
+			}
+			return true;
+		}
+		return false; // 0.35 = 58.5
 	}
-	void OnTriggerExit(Collider other)
+
+	// Vector3 testTemp = Vector3.zero;
+	
+	void OnTriggerStay(Collider other)
 	{
+		if (focusObject)
+			return ;
 		if (other.gameObject.tag == "Player")
 		{
-			focusPlayer = null;
+			// testTemp = other.gameObject.transform.position;
+			if (InView(other.gameObject.transform.position))
+				focusObject = other.gameObject;
+		}
+	}
+
+	void OnDrawGizmosSelected()
+	{
+		for(int d = 0; d < 360; d += 10)
+		{
+			float c = Mathf.Cos(Mathf.Deg2Rad * (float)d);
+			float s = Mathf.Sin(Mathf.Deg2Rad * d);
+			Vector3 dir = new Vector3(c, 0.0f, s);
+			if (Vector3.Dot(transform.forward, dir) > 0.52f)
+				Gizmos.color = Color.green;
+			else
+				Gizmos.color = Color.red;
+			Vector3 pos = transform.position + Vector3.up * 1.5f;
+			Gizmos.DrawLine(pos, pos + dir * 5.0f);
+		}
+		// if (testTemp != Vector3.zero)
+		// {
+		// 	Gizmos.color = Color.blue;
+		// 	Gizmos.DrawLine(
+		// 		transform.position + Vector3.up * 1.0f,
+		// 		testTemp+ Vector3.up * 1.0f
+		// 	);
+		// }
+	}
+
+	void OnTriggerExit(Collider other)
+	{
+		if (other.gameObject == focusObject)
+		{
+			focusObject = null;
 		}
 	}
 
@@ -222,5 +317,9 @@ public class IA : MonoBehaviour {
 				EffectIce.SetActive(false);
 			}
 		}
+	}
+	void OnDestroy()
+	{
+		IAList.Remove(this);
 	}
 }

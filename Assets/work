@@ -5,10 +5,10 @@ Line: Blood Magic, Sacrifice life for magie
 TODO:
 Terrain
 [x] Terrain Base(ground)
-[ ] City 1
-[ ] City 2
-[ ] City 3
-[ ] City ...
+[x] City 1
+[x] City 2
+[x] City 3
+[x] City ...
 
 Animation:
 - Player
@@ -31,11 +31,7 @@ Script:
 	[x] Nav Agent IA
 	[x] Focus Player
 	[x] Attack Player
-	[ ] View in Radius (Dot)
-	[ ] Item Drop
-		[ ] Life
-		[ ] Exp +
-		[ ] Stamina Regen
+	[x] View in Radius (Dot)
 
 Player Stats:
 [x] Life (Life Max = Power)
@@ -63,7 +59,7 @@ Player Stats:
 		[x] Hit Player
 		[x] Hit Entity
 	[x] Defense
-		[ ] Particle Effect
+		[x] Particle Effect
 [X] Stamina (For Defense "Timer")
 	[X] Max Stamina = Powres * 0.2f
 [x] Bonus: Powers
@@ -84,9 +80,9 @@ Effect:
 [x] Effect Particle
 
 Interface:
-[ ] Win/Lost Menu
-	[ ] Input Player name
-	[ ] Restart Game
+[x] Win/Lost Menu
+	[x] Input Player name
+	[x] Restart Game
 [x] In Game
 	[x] Score Board (5 Last score)
 	[x] Pause Menu
@@ -99,6 +95,6 @@ Interface:
 	[x] Spell Select
 	[x] Stamina
 	[x] Kill Count
-	[ ] Living Count
+	[x] Living Count
 	[x] Bar exp
-	[ ] Effect Status
+	[x] Effect Status

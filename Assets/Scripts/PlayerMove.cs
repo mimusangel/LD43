@@ -65,6 +65,10 @@ public class PlayerMove : MonoBehaviour {
 	public Text StaminaRecoveryButtonText;
 	public GameObject PanelTopPlayer;
 	public Text TopPlayerText;
+	public GameObject PanelEndGame;
+	public Text EndGameText;
+	public InputField SaveName;
+	public Text EffectText;
 
 	[Header("Player Stats")]
 	Elemental	_elemental = Elemental.None;
@@ -90,6 +94,32 @@ public class PlayerMove : MonoBehaviour {
 	public GameObject EffectFreezeWater;
 	public GameObject EffectMud;
 	public GameObject EffectIce;
+	public GameObject EffectProtect;
+
+	class TopPlayer {
+		public string name;
+		public int kill;
+		public int score;
+		public TopPlayer(int id)
+		{
+			name = PlayerPrefs.GetString("TOP" + id + "_name");
+			kill = PlayerPrefs.GetInt("TOP" + id + "_kill");
+			score = PlayerPrefs.GetInt("TOP" + id + "_score");
+		}
+		public TopPlayer(string n, int k, int s)
+		{
+			name = n;
+			kill = k;
+			score = s;
+		}
+		public void Save(int id)
+		{
+			PlayerPrefs.SetString("TOP" + id + "_name", name);
+			PlayerPrefs.SetInt("TOP" + id + "_kill", kill);
+			PlayerPrefs.SetInt("TOP" + id + "_score", score);
+		}
+	}
+	List<TopPlayer> TopPlayers = new List<TopPlayer>();
 
 
 	void Start () {
@@ -104,6 +134,9 @@ public class PlayerMove : MonoBehaviour {
 		_spellFirstSelect = 0;
 		_spellSecondSelect = 0;
 		SpellName.text = "None";
+		PanelEndGame.SetActive(false);
+		SaveName.text = PlayerPrefs.GetString("SaveName", "John Doe");
+		EffectText.text = "";
 
 		Power = 10.0f;
 		Life = Power;
@@ -115,13 +148,34 @@ public class PlayerMove : MonoBehaviour {
 		Stamina = Power * 0.2f;
 		StaminaRate = 0.2f;
 		LifeRecoverie = 0.5f;
-		
-		UpdateBonusUI();
 
 		EffectFire.SetActive(false);
 		EffectFreezeWater.SetActive(false);
 		EffectMud.SetActive(false);
 		EffectIce.SetActive(false);
+		EffectProtect.SetActive(false);
+		
+		Vector3 pos = transform.position;
+		pos.y = Terrain.activeTerrain.SampleHeight(pos);
+		transform.position = pos;
+
+		for (int i = 0; i < 5; i++)
+		{
+			int t = PlayerPrefs.GetInt("TOP" + i + "_kill", -1);
+			if (t > -1)
+				TopPlayers.Add(new TopPlayer(i));
+			else
+				break;
+		}
+		LifeBar.fillAmount = Life / Power;
+		LifeText.text = "Life: " + Mathf.RoundToInt(LifeBar.fillAmount * 100.0f) + "%";
+		StaminaBar.fillAmount  = Stamina / (Power * 0.2f);
+		StaminaText.text = "Stamina: " + Mathf.RoundToInt(StaminaBar.fillAmount * 100.0f) + "%";
+		ExpBar.fillAmount  = (float)Exp / (float)(Level * 2.0f + (Level - 1.0f));
+		ExpText.text = "XP: " + Mathf.RoundToInt(ExpBar.fillAmount * 100.0f) + "%";
+		UpdateUIEffect();
+		UpdateBonusUI();
+		Time.timeScale = 0;
 	}
 
 	void FireSpell()
@@ -133,7 +187,7 @@ public class PlayerMove : MonoBehaviour {
 			Rigidbody rg = MagicWandCall.AddComponent<Rigidbody>();
 			rg.velocity = PlayerCamera.transform.forward * 20.0f;
 			rg.useGravity = false;
-
+			rg.collisionDetectionMode = CollisionDetectionMode.Continuous;
 			Destroy(MagicWandCall, 5.0f);
 			PowerLoad.fillAmount = _prepareSpellPower;
 			_prepareSpellPower = 0.0f;
@@ -189,32 +243,22 @@ public class PlayerMove : MonoBehaviour {
 		else if (Input.GetButton("Fire2"))
 		{ // Defense
 			animator.SetInteger("Action", 2);
-			if (MagicWandCall == null)
-			{
-				
-			}
+			EffectProtect.SetActive(true);
 			Stamina -= 1.0f * Time.deltaTime;
 			Stamina = Mathf.Max(Stamina, 0.0f);
 			StaminaRecovery = Stamina <= 0.0f;
 			if (StaminaRecovery)
 			{
-				if (MagicWandCall)
-				{
-					Destroy(MagicWandCall);
-					MagicWandCall = null;
-				}
+				EffectProtect.SetActive(false);
 				animator.SetInteger("Action", 0);
 			}
 		}
 		else if (Input.GetButtonUp("Fire2"))
 		{ // Defense
-			if (MagicWandCall)
-			{
-				Destroy(MagicWandCall);
-				MagicWandCall = null;
-			}
+			EffectProtect.SetActive(false);
+			animator.SetInteger("Action", 0);
 		}
-		else
+		else if (!Input.GetKey(KeyCode.LeftShift))
 		{
 			animator.SetInteger("Action", 0);
 			Stamina += StaminaRate * Time.deltaTime;
@@ -224,6 +268,8 @@ public class PlayerMove : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if (Time.timeScale <= 0)
+			return ;
 		Vector3 move = new Vector3(0, Gravity, 0);
 
 		if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
@@ -233,6 +279,7 @@ public class PlayerMove : MonoBehaviour {
 			PanelBonus.SetActive(true);
 			PanelMenu.SetActive(true);
 			PanelTopPlayer.SetActive(true);
+			Time.timeScale = 0;
 		}
 		if (Cursor.lockState == CursorLockMode.Locked)
 		{
@@ -246,6 +293,15 @@ public class PlayerMove : MonoBehaviour {
 				moveSpd *= 0.5f;
 			else if (_effectElemental == Elemental.Ice)
 				moveSpd *= 0.0f;
+			if (transform.position.y <= 54.0f)
+				moveSpd *= 0.75f;
+			if (Input.GetKey(KeyCode.LeftShift) && !StaminaRecovery)
+			{
+				moveSpd *= 1.5f;
+				Stamina -= 0.1f * Time.deltaTime;
+				Stamina = Mathf.Max(Stamina, 0.0f);
+				StaminaRecovery = Stamina <= 0.0f;
+			}
 			move += (m * moveSpd * Time.deltaTime);
 			if (m.sqrMagnitude > 0)
 				Walk();
@@ -301,14 +357,84 @@ public class PlayerMove : MonoBehaviour {
 		ExpBar.fillAmount  = (float)Exp / (float)(Level * 2.0f + (Level - 1.0f));
 		ExpText.text = "XP: " + Mathf.RoundToInt(ExpBar.fillAmount * 100.0f) + "%";
 		
+		UpdateUIEffect();
 
 		int score = KillNumber * 100 + (Level - 1) * 50 + Mathf.RoundToInt(Life) + Exp * 2;
-		InfoText.text = KillNumber + " Sacrificed\n" + 0 + " Alive\n" + score + " Scores";
+		InfoText.text = KillNumber + " Sacrificed\n" + IA.IAList.Count + " Alive\n" + score + " Scores";
 		
 		if (Life <= 0)
 		{ // Death You Lost!
-
+			Cursor.lockState =  CursorLockMode.None;
+			Cursor.visible = true;
+			PanelEndGame.SetActive(true);
+			int top = GetInTop(score);
+			EndGameText.text = "End of the game thanks you for playing.\n"
+				+ "Your Score is " + score + "\n"
+				+ "You are Top " + (top + 1);
+			
 		}
+		else if (IA.IAList.Count <= 0)
+		{ // Win Game
+			Cursor.lockState =  CursorLockMode.None;
+			Cursor.visible = true;
+			score += 1000; // Bonus Win!
+			PanelEndGame.SetActive(true);
+			int top = GetInTop(score);
+			EndGameText.text = "End of the game thanks you for playing.\n"
+				+ "Your Score is " + score + "\n"
+				+ "You are Top " + (top + 1);
+		}
+	}
+
+	void UpdateUIEffect()
+	{
+		EffectText.text = "";
+		if(_effectElemental == Elemental.Fire)
+			EffectText.text = "You are Ignite!";
+		if(_effectElemental == Elemental.Freeze || _effectElemental == Elemental.Water)
+			EffectText.text = "You are Slow!";
+		if(_effectElemental == Elemental.Mud)
+			EffectText.text = "You are poisoning!";
+		if(_effectElemental == Elemental.Ice)
+			EffectText.text = "You are Lock!";
+	}
+
+	public int GetInTop(int score)
+	{
+		int i;
+		for (i = 0; i < 5; i++)
+		{
+			if (i < TopPlayers.Count)
+			{
+				if (TopPlayers[i].score < score)
+					return i;
+			}
+			else
+				break;
+		}
+		return i;
+	}
+
+	public void ButtonSaveScore()
+	{
+		PlayerPrefs.SetString("SaveName", SaveName.text);
+		int score = KillNumber * 100 + (Level - 1) * 50 + Mathf.RoundToInt(Life) + Exp * 2;
+		if (IA.IAList.Count <= 0)
+			score += 1000;
+		int top = GetInTop(score);
+		if (top < 5)
+		{
+			TopPlayers.Insert(top, new TopPlayer(SaveName.text, KillNumber, score));
+		}
+		// Save Top
+		for (int i = 0; i < 5; i++)
+		{
+			if (i < TopPlayers.Count)
+				TopPlayers[i].Save(i);
+			else
+				break;
+		}
+		PlayerPrefs.Save();
 	}
 
 	public void AddExp(int xp)
@@ -376,6 +502,12 @@ public class PlayerMove : MonoBehaviour {
 		StaminaRecoveryButtonText.text = "1 Bonus For " + (StaminaRate * 0.1f) + " Stamina Recovery";
 
 		TopPlayerText.text = "";
+		foreach(TopPlayer top in TopPlayers)
+		{
+			if (TopPlayerText.text.Length > 0)
+				TopPlayerText.text += "\n";
+			TopPlayerText.text += top.name + " / " + top.score + " pts / " + top.kill + " kill";
+		}
 	}
 
 	public float GetDefense()
@@ -547,9 +679,11 @@ public class PlayerMove : MonoBehaviour {
 		PanelBonus.SetActive(false);
 		PanelMenu.SetActive(false);
 		PanelTopPlayer.SetActive(false);
+		Time.timeScale = 1;
 	}
 	public void MenuGameReset()
 	{
+		IA.IAList.Clear();
 		SceneManager.LoadScene(0);
 	}
 	public void MenuGameExit()

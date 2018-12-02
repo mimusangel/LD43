@@ -1563,8 +1563,8 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1325579504683718}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 482.882, y: 64.00391, z: 349.8392}
+  m_LocalRotation: {x: -0, y: -0.9705822, z: -0, w: -0.24077012}
+  m_LocalPosition: {x: 377.08, y: 65.62, z: 916.59}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4509352254361812}
@@ -1579,7 +1579,7 @@ Transform:
   - {fileID: 4418621279219550}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -207.864, z: 0}
 --- !u!4 &4479650950721282
 Transform:
   m_ObjectHideFlags: 1
@@ -2301,8 +2301,9 @@ MonoBehaviour:
   _spellLoad: 0
   EffectFire: {fileID: 1019421870980068}
   EffectFreezeWater: {fileID: 1861407859420208}
-  EffectMud: {fileID: 0}
+  EffectMud: {fileID: 1984784254108626}
   EffectIce: {fileID: 1246341987019496}
+  MovingTimer: 0
 --- !u!114 &114342530239577682
 MonoBehaviour:
   m_ObjectHideFlags: 1
